@@ -2,7 +2,7 @@
   "name": "astuteo/astuteo-qa",
   "description": "Astuteo helper for testing and monitoring projects.",
   "type": "craft-plugin",
-  "license": "Craft",
+  "license": "MIT",
   "version": "1.0.0",
   "authors": [
     {
