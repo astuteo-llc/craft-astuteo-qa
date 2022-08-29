@@ -6,7 +6,7 @@ use yii\console\Controller;
 class CheckController extends Controller
 {
     public function actionIndex() {
-        InternalLinks::getAll();
+        InternalLinks::checkAll();
         return 'complete';
     }
 

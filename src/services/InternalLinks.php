@@ -7,34 +7,39 @@ use craft\elements\Entry;
 use craft\elements\Category;
 use astuteo\qa\records\RunsRecord;
 use astuteo\qa\records\BrokenLinksRecord;
+use astuteo\qa\jobs\CheckLinksJob;
 use yii\db\StaleObjectException;
+use Craft;
 
 class InternalLinks extends Component
 {
     /*
      * Checks all the links
      */
-    public static function getAll() {
+    public static function checkAll() {
         $thisRun = new RunsRecord();
         $thisRun->type = 'internal';
         $thisRun->complete = false;
         $thisRun->save();
 
+        $urls = array_merge(self::getEntryUrls(), self::getCategoryUrls());
+        $batches = array_chunk($urls, 100);
+        $totalBatches = count($batches);
 
-        $entries = self::checkEntries($thisRun->id);
-        $categories =  self::checkCategories($thisRun->id);
-
-        $normal = $entries['normal'] + $categories['normal'];
-        $error = $entries['error'] + $categories['error'];
-        $checked = $normal + $error;
-        
-        $thisRun->normal = $normal;
-        $thisRun->error = $error;
-        $thisRun->checked = $checked;
+        foreach ($batches as $i => $batch) {
+          $result = Craft::$app->getQueue()->delay(0)->push( new CheckLinksJob([
+              'urls' => $batch,
+              'runId' => $thisRun->id,
+              'currentBatch' => $i + 1,
+              'totalBatches' => $totalBatches
+          ]));
+        };
 
         $thisRun->complete = true;
         $thisRun->save();
+
     }
+
     /*
      * Checks a single link by record ID
      */
@@ -54,6 +59,28 @@ class InternalLinks extends Component
         }
     }
 
+
+    private static function getEntryUrls() {
+        $urls = [];
+        $entries = Entry::find()->all();
+        foreach ($entries as $entry) {
+            if($entry->url) {
+                $urls[] = $entry->url;
+            }
+        }
+        return $urls;
+    }
+    private static function getCategoryUrls() {
+        $urls = [];
+        $entries = Category::find()->all();
+        foreach ($entries as $entry) {
+            if($entry->url) {
+                $urls[] = $entry->url;
+            }
+        }
+        return $urls;
+    }
+
     /**
      * Delete links by run ID
      *
@@ -70,53 +97,7 @@ class InternalLinks extends Component
    }
 
 
-    /*
-     * Check entries with URLs
-     */
-    private static function checkEntries($runId = null) {
-        $normal = 0;
-        $error = 0;
-        $entries = Entry::find()->all();
-        foreach ($entries as $entry) {
-            if($entry->url) {
-                $link = self::checkLink($entry->url, $runId);
-                if($link) {
-                    $normal++;
-                } else {
-                    $error++;
-                }
-            }
-        }
-        return [
-            'normal' => $normal,
-            'error' => $error
-        ];
-    }
-
-    /*
-     * Check categories with URLs
-     */
-    private static function checkCategories($runId = null) {
-        $normal = 0;
-        $error = 0;
-        $entries = Category::find()->all();
-        foreach ($entries as $entry) {
-            if($entry->url) {
-                $link = self::checkLink($entry->url, $runId);
-                if($link) {
-                    $normal++;
-                } else {
-                    $error++;
-                }
-            }
-        }
-        return [
-            'normal' => $normal,
-            'error' => $error
-        ];
-    }
-
-    private static function checkLink($url, $runId = null): bool
+    public static function checkLink($url, $runId = null): bool
     {
         $client = new \GuzzleHttp\Client();
         try {
