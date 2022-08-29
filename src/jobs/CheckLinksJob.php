@@ -35,7 +35,10 @@ class CheckLinksJob extends BaseJob
 
     protected function defaultDescription(): string
     {
-        return Craft::t('astuteo-qa', $this->currentBatch . ' of ' . $this->totalBatches . ' Checking URLs');
+        if($this->totalBatches > 1) {
+            return Craft::t('astuteo-qa', $this->currentBatch . ' of ' . $this->totalBatches . ' Checking URLs');
+        }
+        return Craft::t('astuteo-qa', 'Checking URLs');
     }
 
 }
