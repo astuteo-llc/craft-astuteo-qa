@@ -23,7 +23,7 @@ class InternalLinks extends Component
         $thisRun->save();
 
         $urls = array_merge(self::getEntryUrls(), self::getCategoryUrls());
-        $batches = array_chunk($urls, 100);
+        $batches = array_chunk($urls, 5000);
         $totalBatches = count($batches);
 
         foreach ($batches as $i => $batch) {
