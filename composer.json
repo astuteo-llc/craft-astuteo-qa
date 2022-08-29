@@ -3,7 +3,7 @@
   "description": "Astuteo helper for testing and monitoring projects.",
   "type": "craft-plugin",
   "license": "MIT",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "authors": [
     {
       "name": "Astuteo",
